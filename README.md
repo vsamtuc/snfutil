@@ -5,6 +5,12 @@ A Python library for managing cloud resources on **Synnefo** clouds.
 This repository is an initial project skeleton; cloud management APIs will be
 added as the library develops. Python 3.14 or newer is required.
 
+## Runtime requirements
+
+Python dependencies, including PyYAML for YAML parsing, are installed with the
+package. Cloud operations also require a configured `kamaki` CLI on `PATH`.
+Generating SSH known-hosts entries requires the OpenSSH `ssh-keyscan` command.
+
 ## Development
 
 Create a virtual environment and install the package with development tools:
@@ -22,6 +28,19 @@ Run the tests:
 
 ```sh
 python -m pytest
+```
+
+Expensive tests are excluded by default. Run only the expensive tests (requires
+a configured Kamaki CLI and access to the referenced cloud resources):
+
+```sh
+python -m pytest -m expensive
+```
+
+To run all tests, including expensive tests:
+
+```sh
+python -m pytest -m ""
 ```
 
 Library code lives in `src/snfutil/` and tests live in `tests/`. The editable

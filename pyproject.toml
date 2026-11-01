@@ -18,7 +18,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Systems Administration",
 ]
-dependencies = []
+dependencies = [
+    "PyYAML",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -32,4 +34,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--import-mode=importlib", "-ra"]
+addopts = ["--import-mode=importlib", "-ra", "-m", "not expensive"]
+markers = [
+    "expensive: tests that require cloud access or substantial resources (excluded by default)",
+]
