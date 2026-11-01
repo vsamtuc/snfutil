@@ -3,7 +3,7 @@
 A Python library for managing cloud resources on **Synnefo** clouds.
 
 This repository is an initial project skeleton; cloud management APIs will be
-added as the library develops. Python 3.10 or newer is required.
+added as the library develops. Python 3.14 or newer is required.
 
 ## Development
 
