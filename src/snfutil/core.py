@@ -18,6 +18,23 @@ STATUS = [
 
 
 def options_to_args(options):
+    """
+    Convert a dictionary of options into a list of command-line arguments.
+
+    This function is used internally to turn keyword options
+    in other commands, such as kamaki commands, into command-line 
+    arguments.
+
+    Parameters
+    ----------
+    options: dict
+        The dictionary of options to convert.
+
+    Returns
+    -------
+    list[str]
+        The list of command-line arguments.
+    """
     args = []
     for opt, val in options.items():
         # change underscores to dashes
@@ -37,9 +54,18 @@ def options_to_args(options):
 class SnfObject:
     """Represents various Synnefo objects, represented as JSON internally.
 
+    This class provides a convenient wrapper around Synnefo objects,
+    allowing attribute-style access to the underlying JSON data.
+
+    Some useful operators are used to project and filter the underlying data:
+    - `/` to exclude attributes
+    - `%` to select specific attributes
+    
     SnfObject(obj: dict|SnfObject)
     """
+
     def __init__(self, obj: dict|SnfObject):
+        
         if isinstance(obj, SnfObject):
             self.__obj = SnfObject.asdict(obj)
         elif isinstance(obj, dict):

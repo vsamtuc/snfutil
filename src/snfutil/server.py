@@ -1,5 +1,11 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from .core import SnfObject
 from .kamaki_run import all_entities, entity_info
+
+if TYPE_CHECKING:
+    from typing import Iterator
+
 
 class Server(SnfObject):
     """
@@ -14,8 +20,19 @@ class Server(SnfObject):
             server_obj = server_obj.__getstate__()
         super().__init__(server_obj)
 
-    def flatten_addresses(self):
-        """Return a list of pairs (address, network_id) for every IP address
+    def flatten_addresses(self) -> Iterator[SnfObject]:
+        """Return a list of network addresses for the server.
+
+        Each network address is represented as a SnfObject containing the following keys:
+        - 'netid': The network ID the address belongs to.
+        - 'type': The type of the IP address ('fixed' or 'floating').
+        - 'version': The IP version (4 or 6).
+        - 'addr': The IP address itself.
+
+        Returns
+        -------
+        Iterator[SnfObject]
+            An iterator yielding SnfObject instances containing 'netid', 'type', 'version', and 'addr' for each IP address.
         """
         for netid in self.addresses:
             for addr in self.addresses[netid]:
@@ -26,20 +43,20 @@ class Server(SnfObject):
                     'addr': addr['addr']
                 })
 
-    def fqdn(self):
-        """Return the FQDN (Fully Qualified Domain Name) of the server"""
+    def fqdn(self) -> str:
+        """The FQDN (Fully Qualified Domain Name) of the server"""
         return self['SNF:fqdn']
     
-    def hostname(self):
+    def hostname(self) -> str:
         """Return the hostname, as the first component of the FQDN"""
         return self.fqdn().split('.')[0]
     
-    def attached_networks(self):
+    def attached_networks(self) -> Iterator[SnfObject]:
         """Return the networks that the server is attached to"""
         for netid in self.addresses:
             yield entity_info('network', netid)
 
-    def attached_volumes(self):
+    def attached_volumes(self) -> list[SnfObject]:
         """Return the attached volumes"""
         myvols = set(map(str, self.volumes))
         return [vol

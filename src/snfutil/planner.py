@@ -58,6 +58,22 @@ _QATTR=['limit', 'usage']
 QATTR = [*_QATTR, *[f"project_{a}" for a in _QATTR]]
 
 class Quota:
+    """
+    Quota class representing the quota for a specific resource.
+
+    Attributes
+    ----------
+    rtype: str
+        The type of the resource.
+    limit: int
+        The quota limit for the resource.
+    usage: int
+        The current usage of the resource.
+    project_limit: int
+        The project-wide quota limit for the resource.
+    project_usage: int
+        The current project-wide usage of the resource.
+    """
     def __init__(self, rtype, data):
         self.rtype = resolve_resource(rtype)
         for k,v in data.items():
@@ -65,6 +81,9 @@ class Quota:
 
     @property
     def unit(self):
+        """
+        Return the unit of the resource.
+        """
         return RESOURCE_UNIT[self.rtype]
 
     def __repr__(self):
@@ -73,6 +92,9 @@ class Quota:
         return f"Quota('{self.rtype}', available={self.qty(self.available)}, {all_attr})"
 
     def uqty(self, m):
+        """
+        Return the quantity of the resource in its unit, without the unit label.
+        """
         if self.unit == 'bytes':
             return f"{float(m)/(1<<30)}"
         else:
@@ -99,10 +121,31 @@ class Quota:
 
 
 class Planner:
+    """
+    Planner class to examine project quotas and resources.
+
+    A Planner is initialized with a project specification and provides methods 
+    to examine its quotas and resources.
+    """
+
     def __init__(self, project_spec):
         self.project = resolve_entity('project', project_spec)
 
     def quota(self, resource=None):
+        """
+        Retrieve the quota for the specified resource or all resources if none is specified.
+        
+        Parameters
+        ----------
+        resource:
+            The resource type to retrieve the quota for. If None, retrieves all resources.
+
+        Returns
+        -------
+        Quota or list of Quota
+            The quota for the specified resource, or a list of quotas for all resources if no resource is specified.
+        """
+
         if resource is None:
             q = kamaki('quota', 'list', project_id=self.project.id)
             return [Quota(rtype, rval) 
@@ -120,10 +163,17 @@ class Planner:
         return f"Planner({self.project.name})"
 
     def floating_ips(self, netid):
+        """
+        List floating IPs associated with the project and a specific network.
+
+        Parameters
+        ----------
+        netid:
+            The ID of the network to filter floating IPs by.
+        """
         netid = str(netid)
         addr = all_entities('ip', where= lambda i: (i.tenant_id == self.project.id and 
                                                      i.floating_network_id==netid))
-
         # Two indexed collections
         servers = {str(server.id) : server for server in all_entities('server')}
         ports = {str(port.id) : port for port in all_entities('port', details=True)}
@@ -136,8 +186,16 @@ class Planner:
                 srv = servers[srv_id]
                 print(f"{a.floating_ip_address:20}    {srv.name}")
 
-
     def info(self, file=None):
+        """
+        Print detailed information about the project's quota.
+
+        Parameters
+        ----------
+        file:
+            The file-like object to print the information to. Defaults to sys.stdout.
+        """
+
         if file is None:
             file = sys.stdout
 

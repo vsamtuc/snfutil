@@ -1,14 +1,14 @@
 from __future__ import annotations
 import logging
 import time
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .core import SnfObject, options_to_args
 from .kamaki_run import all_entities, entity_info, kamaki_cmd, kamaki
 from .planner import Planner
 
 if TYPE_CHECKING:
-    from snfutil.specs import ServerSpec
+    from .specs import ServerSpec, ClusterSpec
 
 
 class ClusterController:
@@ -18,7 +18,7 @@ class ClusterController:
     The controller is responsible for managing the resources
     of a cluster according to a spec.
     """
-    def __init__(self, cluster_spec):
+    def __init__(self, cluster_spec: ClusterSpec):
         self.cluster_spec = cluster_spec
 
         # store server specs
@@ -32,34 +32,37 @@ class ClusterController:
         self.logger = logging.getLogger("controller")
 
     @property
-    def spec(self):
+    def spec(self) -> ClusterSpec:
         return self.cluster_spec
 
     @property
-    def server_specs(self):
+    def server_specs(self) -> list[ServerSpec]:
         return self._server_specs
 
     @property
-    def server_names(self):
+    def server_names(self) -> list[str]:
         return self._server_names
 
     @property
-    def server_spec(self):
+    def server_spec(self) -> dict[str, ServerSpec]:
         return self._server_spec
 
     def activate(self):
+        """Activate all servers according to the spec"""
         # Set goal for all servers
         for server in self.server_specs:
             server.set_status('ACTIVE')
         self.apply_spec()
 
     def deactivate(self):
+        """Deactivate all servers according to the spec"""
         # Set goal for all servers
         for server in self.server_specs:
             server.set_status(None)
         self.apply_spec()
 
-    def get_goals(self):
+    def get_goals(self) -> dict[str, str]:
+        """Return the desired goal status for each server"""
         return {spec.name: spec.status for spec in self.server_specs}
 
     def apply_spec(self):
@@ -100,6 +103,23 @@ class ClusterController:
             time.sleep(0.5)
 
     def transition_server(self, server, state, goal):
+        """Transition a server from its current state to the desired goal state.
+
+        Parameters
+        ----------
+        server : str
+            The name of the server.
+        state : SnfObject
+            The current state of the server.
+        goal : str
+            The desired goal status for the server.
+
+        Returns
+        -------
+        int
+            The number of actions taken (0 or 1).
+        """
+
         # Get the current status
         assert goal != 'ERROR'
         status = state.status

@@ -1,3 +1,10 @@
+"""
+Specification classes for Synnefo resources.
+
+These classes define the specifications for servers, 
+networks, and clusters in a Synnefo cloud environment.
+"""
+
 from __future__ import annotations
 import os
 import pathlib
@@ -259,9 +266,22 @@ class VolumeSpec:
     def make(self):
         pass
 
+
 class ClusterSpec:
     """
-    Class that describes a new server.
+    Specification for a cluster of similar servers.
+
+    This class represents the specification for a collection of similar
+    servers that are intended to be part of the same cluster, sharing
+    common characteristics such as flavor, image, and network configuration.
+
+    The specification includes details such as the number of nodes, the project,
+    flavor, image, networks, volumes, and other configuration options that define
+    the desired state of the cluster.
+
+    This information can be used to allocate the cluster VMs and provision them
+    with the specified configuration and resources. In addition, this specification
+    can serve as an ansible inventory source for automation purposes.
     """
     def __init__(self, 
                  num_nodes: int,

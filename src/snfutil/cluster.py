@@ -95,13 +95,13 @@ class Cluster(ClusterController):
                 addresses = ''
             print(f"  {srv:16} {srvid:6} {status:7} {goal:7} {storage:7} {addresses:32}", **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Cluster({self.cluster_spec.spec_ident()})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
-    def get_servers(self):
+    def get_servers(self) -> list[Server]:
         return [Server(state) 
                 for state in self.get_states().values()]
 

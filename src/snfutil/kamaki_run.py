@@ -1,18 +1,36 @@
 import io
 import logging
-from subprocess import run, STDOUT
+from subprocess import run
 import json
 import yaml
 from .core import options_to_args, SnfObject, ENTITIES
 
 # When non-null, specify a non-default cloud
-CLOUD=None
+CLOUD = None
+
 
 def _run_kamaki(cmd: list[str]):
-    global VERBOSE, CLOUD
+    """
+    Execute a kamaki command and return the result.
+
+    This is a low-level function that is used internally to 
+    execute kamaki commands.
+
+    Parameters
+    ----------
+    cmd: list[str]
+        The command to execute as a list of strings.
+
+    Returns
+    -------
+    CompletedProcess
+        The result of the executed command.
+    """
+
+    # global CLOUD
     logger = logging.getLogger("kamaki")
     if CLOUD:
-        cmd = list(cmd).extend(['--cloud', CLOUD])
+        cmd = list(cmd) + ['--cloud', CLOUD]
 
     # printable command
     pcmd = ' '.join(cmd)
@@ -23,7 +41,17 @@ def _run_kamaki(cmd: list[str]):
         raise RuntimeError(str(cout))
     return cout
 
+
 def config_clouds():
+    """
+    Return the available cloud configurations and the 
+    default cloud.
+
+    Returns
+    -------
+    tuple[set[str], str]
+        A tuple containing the set of all cloud names and the default cloud name.
+    """
     bopts = _run_kamaki(['kamaki', 'config', 'list']).stdout
     with io.BytesIO(bopts) as f:
         blines = f.readlines()
@@ -42,22 +70,64 @@ def config_clouds():
         raise RuntimeError(f"Malformed options: default cloud '{default_cloud}' not in {clouds}")
     return clouds, default_cloud
 
+
 def default_cloud():
+    """
+    Return the default cloud name.
+
+    Returns
+    -------
+    str
+        The default cloud name.
+    """
     return config_clouds()[1]
 
+
 def all_clouds():
+    """
+    Return the set of all available cloud names.
+
+    Returns
+    -------
+    set[str]
+        The set of all cloud names.
+    """
     return config_clouds()[0]
 
+
 def current_cloud():
-    global CLOUD
+    """
+    Return the currently selected cloud name.
+
+    Returns
+    -------
+    str
+        The current cloud name.
+    """
+    # global CLOUD
     if CLOUD is not None:
         return CLOUD
     else:
         return default_cloud()
 
+
 def kamaki(*args, **kwargs):
-    """Used to execute kamaki commands and return the result as json.
     """
+    Execute kamaki commands and return the result as json.
+
+    Parameters
+    ----------
+    *args:
+        Positional arguments for the kamaki command.
+    **kwargs:
+        Keyword arguments for the kamaki command.
+
+    Returns
+    -------
+    dict or list or str or None
+        The parsed JSON or YAML output, or raw stdout if parsing fails, or None if output_format is False.
+    """
+
     cargs = [str(a) for a in args]
     options = {'output_format': 'json'}
     options.update(kwargs)
@@ -77,8 +147,22 @@ def kamaki(*args, **kwargs):
     except Exception as e:
         raise RuntimeError(str(cout)) from e
 
+
 def kamaki_cmd(*args, **kwargs):
-    """Execute the kamaki command for commands that do not return output"""
+    """
+    Execute the kamaki command for commands that do not return output
+    Parameters
+    ----------
+    *args:
+        Positional arguments for the kamaki command.
+    **kwargs:
+        Keyword arguments for the kamaki command.
+
+    Returns
+    -------
+    None
+        Raises RuntimeError if the command fails or returns an error.
+    """
     cargs = [str(a) for a in args]
     options = {}
     options.update(kwargs)
@@ -89,7 +173,27 @@ def kamaki_cmd(*args, **kwargs):
     if cout.stdout.startswith(b"Syntax error\n"):
         raise RuntimeError(cout.stdout)
 
-def all_entities(entcls, where=None, select=None, **options):
+
+def all_entities(entcls, where=None, select=None, **options) -> list[SnfObject]:
+    """
+    Retrieve all entities of a given class, optionally filtered and selected.
+
+    Parameters
+    ----------
+    entcls:
+        The entity class.
+    where:
+        A callable to filter entities.
+    select:
+        A list of attributes to select from each entity.
+    **options:
+        Additional options for the kamaki command.
+
+    Returns
+    -------
+    list
+        A list of entities matching the criteria.
+    """
     if entcls not in ENTITIES:
         raise NameError(f"Entity {entcls} is unknown")
     optargs = options_to_args(options)
@@ -102,12 +206,45 @@ def all_entities(entcls, where=None, select=None, **options):
     return list(ent)
 
 
-def entity_info(entcls, ent_id, **options):
+def entity_info(entcls: str, ent_id: str, **options) -> SnfObject | None:
+    """
+    Retrieve information about a specific entity.
+
+    Parameters
+    ----------
+    entcls:
+        The entity class.
+    ent_id:
+        The ID of the entity.
+    **options:
+        Additional options for the kamaki command.
+
+    Returns
+    -------
+    SnfObject
+        The entity information wrapped in a SnfObject.
+    
+        Raises RuntimeError if the entity does not exist.
+    """
     ent = kamaki(entcls, 'info', str(ent_id), **options)
     return SnfObject(ent)
 
 
 def show_all(entcls, where=None, select=None, **options):
+    """
+    Show all entities of a given class, optionally filtered and selected.
+
+    Parameters
+    ----------
+    entcls:
+        The entity class.
+    where:
+        A callable to filter entities.
+    select:
+        A list of attributes to select from each entity.
+    **options:
+        Additional options for the kamaki command.
+    """
     for e in all_entities(entcls, where=where, select=select, **options):
         print(e)
 
@@ -116,7 +253,7 @@ def fetch_entity(entcls, where, optional=False, info=False, **options):
     """
     Return the unique entity matching selector.
 
-    Attributes
+    Parameters
     ----------
     entcls:
         The entity class
@@ -125,7 +262,7 @@ def fetch_entity(entcls, where, optional=False, info=False, **options):
     optional (=False): bool
         If true, return `None` if no match is found.
     info (=False): bool
-        If true, return entity info object.
+        If true, return entity info object instead of the entity itself.
     """
     fl = list(all_entities(entcls, where=where, **options))
     if optional and not fl:
@@ -143,9 +280,28 @@ def fetch_entity(entcls, where, optional=False, info=False, **options):
     return ent
 
 
-def resolve_entity(entcls, sel, optional=False, info=False, **options):
-    """Select an entity by a flexible spec    
+def resolve_entity(entcls, sel, 
+                   optional=False, info=False, **options
+                   ) -> SnfObject | None:
     """
+    Select an entity by a flexible spec.
+
+    Parameters
+    ----------
+    entcls:
+        The entity class.
+    sel:
+        The selection criteria, which can be a SnfObject, 
+        dict, callable, string, or None.
+    optional (=False): bool
+        If true, return `None` if no match is found.
+    info (=False): bool
+        If true, return entity info object instead of the
+        entity itself.
+    **options:
+        Additional options for the kamaki command.
+    """
+
     if isinstance(sel, SnfObject):
         # turn into dict
         sel = SnfObject.asdict(sel)
